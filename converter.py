@@ -1,8 +1,11 @@
 import io
+from utils import conv_dict_to_odict
 
 
 class DictDecomposer:
     def __init__(self, d):
+        if type(d) == dict:
+            d = conv_dict_to_odict(d)
         self.d = d
         self.keys = list(d.keys())
         self.values = list(d.values())
@@ -12,9 +15,11 @@ class DictDecomposer:
 
 
 class Converter:
-    def __init__(self, delimiter=',', newline='\n'):
+    def __init__(
+            self, delimiter=',', newline='\n',
+            dict_decomposer=DictDecomposer):
         self.delimiter = delimiter
-        self.dict_decomposer = DictDecomposer
+        self.dict_decomposer = dict_decomposer
         self.newline = newline
 
     def convert(self, d, display=True, f=None, filename=None):
