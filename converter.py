@@ -5,22 +5,34 @@ from utils import conv_dict_to_odict
 class DictDecomposer:
     def __init__(self, d):
         if type(d) == dict:
-            d = conv_dict_to_odict(d)
+            d = self.convert(d)
         self.d = d
-        self.keys = list(d.keys())
-        self.values = list(d.values())
+        self.keys = list(self.d.keys())
+        self.values = list(self.d.values())
+
+    def convert(self, d):
+        return conv_dict_to_odict(d)
 
     def decompose(self):
         return self
 
 
+class NumDictDecomposer(DictDecomposer):
+    def convert(self, d):
+        return conv_dict_to_odict(d, first_sort=lambda items: sorted(items, key=lambda i: int(i[0])))
+
+
 class Converter:
     def __init__(
             self, delimiter=',', newline='\n',
-            dict_decomposer=DictDecomposer):
+            dict_decomposer=DictDecomposer, header_serialize=str,
+            column_serialize=str, data_serialize=str):
         self.delimiter = delimiter
         self.dict_decomposer = dict_decomposer
         self.newline = newline
+        self.header_serialize = header_serialize
+        self.column_serialize = column_serialize
+        self.data_serialize = data_serialize
 
     def convert(self, d, display=True, f=None, filename=None):
         self.decompose(d)
@@ -58,7 +70,8 @@ class Converter:
         for values in dict_data.values:
             header.update(values.keys())
         self.header_data = sort_call_back(header)
-        self.header = self.delimiter + self.delimiter.join(self.header_data)
+        self.serialized_header_data = map(self.header_serialize, self.header_data)
+        self.header = self.delimiter + self.delimiter.join(self.serialized_header_data)
 
     def write_header(self, stream):
         stream.write(self.header + self.newline)
@@ -72,7 +85,7 @@ class Converter:
             data = []
             for h in self.header_data:
                 if h in values.keys():
-                    data.append(values[h])
+                    data.append(self.data_serialize(values[h]))
                 else:
                     data.append('')
             self.data_list.append(data)
@@ -87,7 +100,7 @@ class Converter:
                     break
             stream.write(
                 ''.join([
-                    self.column_header_data[index],
+                    self.column_serialize(self.column_header_data[index]),
                     self.delimiter,
                     self.delimiter.join(datum),
                     self.newline
